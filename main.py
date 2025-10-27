@@ -100,9 +100,9 @@ TOOLS = [write_json, read_json, generate_sample_users]
 
 llm = ChatOpenAI(
     model= os.getenv("MODEL"), # "gpt-4"
+    temperature=0
     api_key = os.getenv("OPENAI_API_KEY"),
     base_url = os.getenv("OPENAI_API_BASE_URL"), # lm-studio
-    temperature=0
     )
 
 SYSTEM_MESSAGE = (
