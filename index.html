@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DataGen Web Client</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    #log { flex: 1; overflow-y: auto; padding: 10px; background: #f6f6f6; white-space: pre-wrap; }
+    .msg.user { color: #0057e7; }
+    .msg.agent { color: #333; }
+    .msg.system { color: #888; font-style: italic; }
+    .msg.error { color: #d11; }
+    #controls { display: flex; gap: 6px; padding: 8px; background: #fff; border-top: 1px solid #ccc; }
+    input[type=text] { flex: 1; padding: 6px; }
+    button { padding: 6px 12px; }
+    #url { width: 220px; }
+    #status { margin-left: auto; font-size: 0.9em; align-self: center; }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+
+  <div id="controls">
+    <input id="url" type="text" placeholder="ws://localhost:8765" value="ws://localhost:8765" />
+    <button id="connectBtn">Connect</button>
+    <input id="msgInput" type="text" placeholder="Ask DataGen…" disabled />
+    <button id="sendBtn" disabled>Send</button>
+    <span id="status">Disconnected</span>
+  </div>
+
+  <script>
+    let ws = null;
+    const $ = id => document.getElementById(id);
+    const log = (txt, cls = '') => {
+      const line = document.createElement('div');
+      line.className = 'msg ' + cls;
+      line.textContent = new Date().toLocaleTimeString() + '  ' + txt;
+      $('log').appendChild(line);
+      $('log').scrollTop = $('log').scrollHeight;
+    };
+
+    $('connectBtn').onclick = () => {
+      if (ws) { ws.close(); return; }
+
+      const url = $('url').value.trim();
+      if (!url) return;
+
+      $('status').textContent = 'Connecting…';
+      $('connectBtn').disabled = true;
+
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        $('status').textContent = 'Connected';
+        $('connectBtn').textContent = 'Disconnect';
+        $('msgInput').disabled = false;
+        $('sendBtn').disabled = false;
+        $('connectBtn').disabled = false;
+        log('WebSocket opened', 'system');
+      };
+      ws.onmessage = evt => {
+        const pkt = JSON.parse(evt.data);
+        log(pkt.text, pkt.type);
+      };
+      ws.onclose = () => {
+        ws = null;
+        $('status').textContent = 'Disconnected';
+        $('connectBtn').textContent = 'Connect';
+        $('msgInput').disabled = true;
+        $('sendBtn').disabled = true;
+        $('connectBtn').disabled = false;
+        log('WebSocket closed', 'system');
+      };
+      ws.onerror = err => log('Socket error – ' + err, 'error');
+    };
+
+    const send = () => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const text = $('msgInput').value.trim();
+      if (!text) return;
+      ws.send(JSON.stringify({ text }));
+      log('You: ' + text, 'user');
+      $('msgInput').value = '';
+    };
+    $('sendBtn').onclick = send;
+    $('msgInput').onkeyup = e => { if (e.key === 'Enter') send(); };
+  </script>
+</body>
+</html>
