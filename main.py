@@ -120,7 +120,7 @@ def run_agent(user_input: str, history: List[BaseMessage]) -> AIMessage:
     """Single-turn agent runner with automatic tool execution via LangGraph."""
     try:
         result = agent.invoke(
-            {"messages": history + [HumanMessage(content=user_input)]},
+            {"messages": history + [HumanMessage(content=user_input+'\n /no_think')]},
             config={"recursion_limit": 50}
         )
         # Return the last AI message
